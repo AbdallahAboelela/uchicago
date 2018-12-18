@@ -1,0 +1,225 @@
+---
+title: "PSet 3, Problem 2"
+author: "Abdallah Aboelela and Hussein El Kheshen"
+date: 'Due: 13 November, 2018'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r 3.2 setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+marketing.file = paste("https://raw.githubusercontent.com/jtorcasso/teaching/",
+"master/econ210_fall2018/data/marketing.csv", sep="")
+
+df = read.csv(marketing.file)
+```
+
+**Exercise 2.a**
+
+$Y(1), Y(0) \perp Z$ due to randomization, and $Z = D$ due to perfect compliance  
+so  $Y(1), Y(0) \perp D$ and  
+$E[Y|D = 1] - E[Y | D = 0] = E[Y(1)] - E[Y(0)] =E[Y(1)-Y(0)] = ATE$  
+
+```{r 2.a}
+# means
+m0 = mean(df$sale[df$adv == 0])
+m1 = mean(df$sale[df$adv == 1])
+
+# variance
+var0 = var(df$sale[df$adv==0])
+var1 = var(df$sale[df$adv==1])
+
+# sample size
+N0 = sum(df$adv == 0)
+N1 = sum(df$adv == 1)
+
+# other
+alpha = 0.05
+
+# tests
+dy = qnorm(1-alpha/2)*sqrt((var1/N1 + var0/N0))
+```
+
+Mean difference = `r round(m1 - m0, 3)`  
+95% Confidence interval of `r sprintf("(%s, %s)", round(m1 - m0 - dy, 3), round(m1 - m0 + dy, 3))`  
+
+&nbsp;
+&nbsp;
+
+**Exercise 2.b**
+
+Our estimate will probably be biased, in the situation that males and females have different control spend levels. For example, if females have a higher control spend level then overtreating females will result in a significant sales increase for the treatment group, irresepctive of how effective the advertisement was. This will manifest itself as a biased ATE which is higher than it should be. Conversely, if the female control spend is lower than the male control spend then the ATE will likely be biased too low for the same reasons.
+
+\pagebreak
+
+**Exercise 2.c**
+
+$Y(d) \perp D|X$
+$ATE = E[Y(1)-Y(0)] = E[Y(1)-Y(0)|X = 1]P(X = 1) + E[Y(1)-Y(0)|X = 0]P(X = 0)$
+
+```{r 2.c}
+# means
+men_m0 = mean(df$sale[df$adv == 0 & df$male == 1]) 
+men_m1 = mean(df$sale[df$adv == 1 & df$male == 1])
+
+women_m0 = mean(df$sale[df$adv == 0 & df$male == 0])
+women_m1 = mean(df$sale[df$adv == 1 & df$male == 0])
+
+# variance
+men_var0 = var(df$sale[df$adv==0 & df$male == 1])
+men_var1 = var(df$sale[df$adv==1 & df$male == 1])
+
+women_var0 = var(df$sale[df$adv==0 & df$male == 0])
+women_var1 = var(df$sale[df$adv==1 & df$male == 0])
+
+# sample size
+men_N0 = sum(df$adv == 0 & df$male == 1)
+men_N1 = sum(df$adv == 1 & df$male == 1)
+prop_men = (men_N0 + men_N1)/length(df$male)
+
+women_N0 = sum(df$adv == 0 & df$male == 0)
+women_N1 = sum(df$adv == 1 & df$male == 0)
+prop_women = (women_N0 + women_N1)/length(df$male)
+
+# mean differences
+d_men = men_m1 - men_m0
+d_women = women_m1 - women_m0
+
+# estimate ATE
+ate = d_men * prop_men + d_women * prop_women
+```
+
+Untreated men = `r round(men_m0, 3)` $= E[Y|D = 0, X = 1] = E[Y(0)|X=1]$  
+Treated men = `r round(men_m1, 3)` $= E[Y|D = 1, X = 1] = E[Y(1)|X=1]$  
+Untreated women = `r round(women_m0, 3)` $= E[Y|D = 0, X = 0] = E[Y(0)|X=0]$  
+Treated women = `r round(women_m1, 3)` $= E[Y|D = 1, X = 0] = E[Y(1)|X=1]$  
+Men mean difference = `r round(d_men, 3)` $=E[Y(1)-Y(0)|X=1]$  
+Women mean difference = `r round(d_women, 3)` $=E[Y(1)-Y(0)|X=0]$  
+$P(X = 1) =$ `r round(prop_men, 3)` and $P(X = 0) =$ `r round(prop_women, 3)`  
+
+**Estimate ATE** = `r round(ate, 3)` $=E[Y(1)-Y(0)|X=1]P(X=1)+E[Y(1)-Y(0)|X=0]P(X=0)$  
+
+Our predictions about the bias were indeed correct - while the ATE for males is significantly higher than that of females, the ATE itself appeared much larger when overtreating females due to the fact that they have the higher magnitude of spend.
+  
+\pagebreak
+
+**Exercise 2.d**  
+
+```{r 2.d}
+set.seed(210)
+bdraws = 1000
+
+# given a sample, what's the ate
+ate_finder = function(df) {
+  #means
+  men_m0 = mean(df$sale[df$adv == 0 & df$male == 1])
+  men_m1 = mean(df$sale[df$adv == 1 & df$male == 1])
+  women_m0 = mean(df$sale[df$adv == 0 & df$male == 0])
+  women_m1 = mean(df$sale[df$adv == 1 & df$male == 0])
+  
+  # variances
+  men_var0 = var(df$sale[df$adv==0 & df$male == 1])
+  men_var1 = var(df$sale[df$adv==1 & df$male == 1])
+  women_var0 = var(df$sale[df$adv==0 & df$male == 0])
+  women_var1 = var(df$sale[df$adv==1 & df$male == 0])
+  
+  # sample size
+  men_N0 = sum(df$adv == 0 & df$male == 1)
+  men_N1 = sum(df$adv == 1 & df$male == 1)
+  prop_men = (men_N0 + men_N1)/length(df$male)
+  
+  women_N0 = sum(df$adv == 0 & df$male == 0)
+  women_N1 = sum(df$adv == 1 & df$male == 0)
+  prop_women = (women_N0 + women_N1)/length(df$male)
+  
+  # mean differences and ate
+  d_men = men_m1 - men_m0
+  d_women = women_m1 - women_m0
+  ate = d_men * prop_men + d_women * prop_women
+  return(ate)
+  }
+
+# Bootstrapping ate, using samples built from existing df
+b.ates = sapply(1:bdraws, function(k)ate_finder(df[sample(nrow(df), nrow(df), replace = T),]))
+
+# quantiles
+lb_ci = quantile(b.ates, alpha/2)
+ub_ci = quantile(b.ates, 1-alpha/2)
+```
+
+The confidence interval is  `r sprintf("(%s, %s)", round(lb_ci, 3), round(ub_ci, 3))`.
+
+\pagebreak
+
+**Exercise 2.e**  
+
+Cost of basic advertisement = \$1 (From Question 1)  
+Cost of animated advertisement = \$2 (From Question 1)
+
+For the extra cost of the animated advertisement to be worth it, then the animated advertisement must increase the consumer's spending by \$10. This is because in order to justify an additional cost of \$1 for the animated advertisement, we must in exchange see an increase in profit of at least \$1. Since we know that profit margin on the vacuums is 10%, we would need $\frac{1}{0.1} = \$10$ increase in revenue.
+
+To summarize, $\Delta Revenue \geq \frac{\alpha_1 - \alpha_0}{\pi_{margin}}$ where $\alpha_1 = 2, \alpha_0 = 1, \pi_{margin} = 0.1 \rightarrow \Delta Revenue = \$10$
+
+Dataframe mean ATE is `r round(ate, 3)`.  
+Bootstrap mean ATE is  `r round(mean(b.ates), 3)`.  
+Bootstrap ATE confidence interval is  `r sprintf("(%s, %s)", round(lb_ci, 3), round(ub_ci, 3))`.
+
+We would say that the advanced commercial is ultimately not worth it if applied to the entire population. As shown in the results above, both the Dataframe mean and Bootstrap mean are more than \$1 below the required sales increase to break even on the advanced commercial. While we can see that there is a possibility that the advanced commercial could be worth it since \$10 is within our 95% of our Bootstrap confidence interval, an ATE of 10 would be near the upper bound of our margin which suggests that it is unlikely to be the true ATE - thus we recommend against the advanced commercial.
+
+&nbsp;
+&nbsp;
+
+**Exercise 2.f**
+
+Men ATE = `r round(d_men, 3)` $=E[Y(1)-Y(0)|X=1]$  
+Women ATE = `r round(d_women, 3)` $=E[Y(1)-Y(0)|X=0]$  
+
+For men, net increase in profit when shown the animated advertisement is: `r paste("$", round(d_men/10-1, 2), sep="")`  
+For women, net increase in profit when shown the animated advertisement is: `r paste("$", round(d_women/10-1, 2), sep="")`  
+
+If we could target the ads by gender, it would almost certainly be worth it to advertise to men. The ATE for men is significantly higher than the breakeven point of 10, while the ATE for women is significantly lower than the 10 needed. Thus, it appears that we should (if possible) exclusively target men with the animated advertisement.
+
+&nbsp;
+&nbsp;
+
+**Exercise 2.g**
+
+$y = \beta_0 + \beta_1D + \beta_2X$
+
+```{r 2.g}
+adv = df$adv
+male = df$male
+stacked = cbind(1, adv, male)
+b.hat = solve(t(stacked)%*%stacked)%*%t(stacked)%*%df$sale
+b.hat
+```
+
+Under regression we get a $\beta_1$ = `r round(b.hat[2], 3)`.
+Earlier we had an ATE = `r round(ate, 3)`
+
+Both results are similar, because both methods attempt to account for the effect of gender on treatment effect. While the cell-wise ATE solves for the gender effect explicitly (by isolating results depending on gender), this regression implicitly solves for the effect of gender in order to isolate the effect of treatment on sales. 
+
+\pagebreak
+
+**Exercise 2.h**
+
+Under IPW, $ATE = E[Y(1) - Y(0)] = E\bigg[Y \frac{D - \pi(X)}{\pi(X)(1-\pi(X))} \bigg]$  
+where $\pi(X) = P(D = 1|X)$  
+
+```{r 2.h}
+df$pi.x[df$male == 0] = mean(df$adv[df$male == 0])
+df$pi.x[df$male == 1] = mean(df$adv[df$male == 1])
+
+numerator = df$adv - df$pi.x
+denominator = df$pi.x * (1-df$pi.x)
+
+ipw.ate = mean(df$sale * numerator/denominator)
+```
+
+Our IPW ATE is `r round(ipw.ate, 3)`  
+Earlier, we had an ATE of `r round(ate, 3)`  
+
+Our results do not change at all when using IPW. The ATE is equal to what it was when calculated in 2c.
+
