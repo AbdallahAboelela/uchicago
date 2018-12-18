@@ -1,0 +1,102 @@
+---
+title: "PSET 3, Problem 1"
+author: "Abdallah Aboelela and Hussein El Kheshen"
+date: "5 November 2018"
+output: pdf_document
+---
+
+**Problem 1.a**  
+Assuming perfect compliance, the only other assumption we need to show the below is randomization. This means that the potential outcomes $Y(1)$ and $Y(0)$ are independent of $Z$, the assignment of static or animated commercial.  
+$Y(1), Y(0) \perp Z$ and $Z = D$ due to perfect compliance  
+so  
+$E[Y|D = 1] - E[Y | D = 0] = E[Y(1)] - E[Y(0)] =E[Y(1)-Y(0)] = ATE$  
+  
+  
+  
+  
+  
+**Problem 1.b**  
+$H_0: \mu_1 - \mu_0 = 0$  
+$H_1: \mu_1 - \mu_0 \neq 0$  
+
+$\tau_N = \frac{\bar{Y}_{1, N} - \bar{Y}_{0, N}}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}}$
+
+$P(|\tau_N| > z_{1-\frac{\alpha}{2}}) | \delta = \Delta c, \sigma)$  
+$= P(\tau_N > z_{1-\frac{\alpha}{2}}) | \delta = \Delta c, \sigma) + P(- \tau_N > z_{1-\frac{\alpha}{2}}) | \delta = \Delta c, \sigma)$  
+$= P(\frac{\bar{Y}_{1, N} - \bar{Y}_{0, N}}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}} > z_{1-\frac{\alpha}{2}}) | \delta = \Delta c, \sigma) + P(- \frac{\bar{Y}_{1, N} - \bar{Y}_{0, N}}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}} > z_{1-\frac{\alpha}{2}}) | \delta = \Delta c, \sigma)$  
+
+$\overset{d}{\to} \Phi(-z_{1-\frac{\alpha}{2}} + \frac{\Delta c}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}}) + \Phi(-z_{1-\frac{\alpha}{2}} - \frac{\Delta c}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}})$
+
+$\approx \Phi(-z_{1-\frac{\alpha}{2}} + \frac{\Delta c}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}})$  
+
+since $\Phi(-z_{1-\frac{\alpha}{2}} - \frac{\Delta c}{\sqrt{\frac{\sigma_1^2}{N_1}+{\frac{\sigma_0^2}{N_0}}}}) \approx 0$
+  
+
+**Problem 1.c**  
+<center>
+$\frac{\sigma^2}{\frac{1}{2}N} + \frac{\sigma^2}{\frac{1}{2}N} \leq \frac{(\Delta c)^2}{(z_\beta + z_{1-\frac{\alpha}{2}})^2}$  
+$\frac{4\sigma^2}{N} \leq \frac{(\Delta c)^2}{(z_\beta + z_{1-\frac{\alpha}{2}})^2}$  
+
+$N \geq 4\sigma^2 \bigg(\frac{z_\beta + z_{1-\frac{\alpha}{2}}}{\Delta c}\bigg)^2$  
+</center>
+
+As $\beta$ increases, $z_\beta$ increases so a higher N is required.  
+As $\alpha$ increases, $z_{1-\frac{\alpha}{2}}$ decreases, so a lower N is required.  
+As $\sigma$ increases, the the first term increases, so a higher N is required.
+
+**Problem 1.d**  
+Cost function $C(\alpha_1, \alpha_0, N_1, N_0) = \alpha_1N_1 + \alpha_0N_0$  
+
+$min_{N_0,N_1}\,\,\alpha_1N_1 + \alpha_0N_0$ s.t. $\frac{\sigma_1^2}{N_1} + \frac{\sigma_0^2}{N_0} = \bigg(\frac{\Delta c}{z_\beta + z_{1-\frac{\alpha}{2}}}\bigg)^2$
+
+$\mathcal{L} = \alpha_1N_1 + \alpha_0N_0 + \lambda \Bigg(\bigg(\frac{\Delta c}{z_\beta + z_{1-\frac{\alpha}{2}}}\bigg)^2 - \frac{\sigma_1^2}{N_1} - \frac{\sigma_0^2}{N_0}\Bigg)$
+
+$[\lambda]: \frac{\sigma_1^2}{N_1} + \frac{\sigma_0^2}{N_0} = \bigg(\frac{\Delta c}{z_\beta + z_{1-\frac{\alpha}{2}}}\bigg)^2$  
+$[N_0]: \alpha_0 + \lambda \Big(\frac{\sigma_0^2}{N_0^2} \Big) = 0$  
+$\rightarrow \lambda = -\alpha_0 \Big(\frac{N_0}{\sigma_0}\Big)^2$
+
+$[N_1]: \alpha_1 + \lambda \Big(\frac{\sigma_1^2}{N_1^2} \Big) = 0$  
+$\rightarrow \lambda = -\alpha_1 \Big(\frac{N_1}{\sigma_1}\Big)^2$
+
+$ \alpha_0\Big(\frac{N_0}{\sigma_0}\Big)^2 = \alpha_1\Big(\frac{N_1}{\sigma_1}\Big)^2$  
+$N_0 = \frac{N_1\sigma_0}{\sigma_1}\Big(\frac{\alpha_1}{\alpha_0}\Big)^{1/2}$  
+
+$\frac{\sigma_1^2}{N_1} + \frac{\sigma_0^2}{N_1\frac{\sigma_0}{\sigma_1}\big(\frac{\alpha_1}{\alpha_0}\big)^{\frac{1}{2}}} = \bigg(\frac{\Delta c}{z_\beta + z_{1-\frac{\alpha}{2}}}\bigg)^2$
+
+$\frac{1}{N_1}(\sigma_1^2 + \sigma_1\sigma_0(\frac{\alpha_0}{\alpha_1})^\frac{1}{2}) = \bigg(\frac{\Delta c}{z_\beta + z_{1-\frac{\alpha}{2}}}\bigg)^2$
+
+$N_1 = \Big(\sigma_1^2 + \sigma_1\sigma_0(\frac{\alpha_0}{\alpha_1})^\frac{1}{2}\bigg(\frac{z_\beta + z_{1-\frac{\alpha}{2}}}{\Delta c}\bigg)^2$
+
+Similary,   
+$N_0 = \Big(\sigma_0^2 + \sigma_0\sigma_1(\frac{\alpha_1}{\alpha_0})^\frac{1}{2}\bigg(\frac{z_\beta + z_{1-\frac{\alpha}{2}}}{\Delta c}\bigg)^2$
+</center>  
+
+As $\alpha_0$ increases, $N_1$ increases, and $N_0$ decreases.  
+As $\alpha_1$ increases, $N_1$ decreases, and $N_0$ increases. 
+
+As $\sigma_d$ increases, both $N_1$ and $N_0$ increase.
+
+As $\Delta c$ increases, $N_1$ and $N_0$ decrease. 
+As $\alpha$ or $\beta$ increase, both $N_1$ and $N_0$ increase. 
+
+**Problem 1.e**  
+```{r 3.1d}
+beta <- 0.8
+alpha <- 0.05
+delta_c <- 0.1
+alpha1 <- 2
+alpha0 <- 1
+sigma <- 3
+
+numerator <- (qnorm(beta) + qnorm(1-alpha/2))^2
+denominator <- delta_c^2
+N_0 <- (sigma^2)*(1+(alpha1/alpha0)^(1/2))*(numerator/denominator)
+N_1 <- (sigma^2)*(1+(alpha0/alpha1)^(1/2))*(numerator/denominator)
+
+C <- alpha1*N_1 + alpha0*N_0
+```
+
+We need `r paste(format(round(N_0, 0), big.mark=","), sep="")` of the static advertisements and `r paste(format(round(N_1,0), big.mark=","), sep="")` of the animated advertisements. Going back to our cost function:  
+$C(\alpha_1, \alpha_0, N_1, N_0) = \alpha_1N_1 + \alpha_0N_0$  
+and substituting in $(\alpha_1, \alpha_0, N_1, N_0)$ = (2, 1, `r paste(format(round(N_0, 0), big.mark=","), sep="")`, `r paste(format(round(N_1,0), big.mark=","), sep="")`), we get $C =$ `r paste("$",format(round(C,0), big.mark=","), sep="")`.
+

@@ -1,0 +1,223 @@
+---
+title: "Econometrics, PS#2"
+author: "Abdallah Aboelela and Hussein Elkheshen"
+date: "29 October, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r problem 1 setup, include=FALSE}
+library(lubridate)
+library(dplyr)
+
+twt.file = paste("https://raw.githubusercontent.com/jtorcasso/teaching/",
+"master/econ210_fall2018/data/trump_tweets.csv", sep="")
+twt = read.csv(twt.file, header=T, quote="")
+
+# formatting tweet datetime into R datetime object
+twt$datetime <- as.POSIXct(twt$created_at, format='%m-%d-%Y %H:%M:%S', tz="GMT")
+
+# converting to eastern time zone
+twt$datetime = format(twt$datetime, tz="America/New_York")
+
+# extracting year and week from datetime
+twt$date = strptime(twt$datetime, format="%Y-%m-%d")
+twt$date = as.POSIXct(twt$date)
+twt = twt[,c("datetime", "date", "text")]
+
+# keeping only presidential tweets
+twt = twt[twt$date >= as.Date("2016-11-04"),]
+twt = na.omit(twt)
+
+# Number of words made up of at least 2 capital letters
+twt$cap = sapply(gregexpr("\\b[A-Z]{2,}\\b", twt$text), function(x) length(c(x[x > 0])))
+
+# Mentioned cnn and fake news
+rex = paste(c("cnn.+fake news", "fake news.+cnn", "liberal media+.cnn", "cnn.+liberal media",
+"mainstream media.+cnn", "cnn.+mainstream media",
+"fake story.+cnn", "cnn.+fake story"), collapse="|")
+twt$fake = as.numeric(grepl(rex, twt$text, ignore.case=T))
+
+# indicator for night time (between 12:00am and 4:00am)
+twt$night <- as.numeric(between(hour(twt$datetime), 0, 4))
+
+trends.file = paste("https://raw.githubusercontent.com/jtorcasso/teaching/",
+"master/econ210_fall2018/data/google_trends.csv", sep="")
+
+trends = read.csv(trends.file, header=T, quote="")
+
+trends$date = as.POSIXct(trends$date, format="%Y-%m-%d")
+
+twt.agg = aggregate(twt$fake, by=list(twt$date), sum)
+colnames(twt.agg) <- c("date", "fake")
+# making sure trends is same time period as twitter,
+# so I can set fake tweets to 0 if not tweets on a day
+trends = trends[between(trends$date, min(twt.agg$date), max(twt.agg$date)),]
+df = merge(x=trends, y=twt.agg, by.x="date", by.y="date", all.x=T)
+# setting fake tweets to 0 when no tweets on a given day
+df$fake[is.na(df$fake)] = 0
+df = df[complete.cases(df),]
+df = df[order(df$date),]
+
+```
+
+## Problem 1
+
+**Problem 1.a**
+
+The estimand is $E[I|D = 1] - E[I|D = 0]$ which we are using because of our assumption that treatment is independent of potential outcomes. Thus, $E[I|D=d] = E[I(d)|D=d] = E[I(d)]$ so $E[I|D = 1] - E[I|D = 0] = E[I(1)-I(0)]$, the average treatment effect.
+
+Our estimator is the sample differene in means. By WLLN, $\lim_{n\to\infty} \bar{I}_N = E[I]$ so the mean difference should estimate the ATE.
+
+```{r problem 1.a}
+# creating dummy variable (copied from assignment)
+df$fake.D = as.numeric(df$fake >= 1)
+
+# mean difference
+m0 = mean(df$interest[df$fake.D==0])
+m1 = mean(df$interest[df$fake.D==1])
+
+# variance
+var0 = var(df$interest[df$fake.D==0])
+var1 = var(df$interest[df$fake.D==1])
+
+# sample size
+N0 = length(df$interest[df$fake.D==0])
+N1 = length(df$interest[df$fake.D==1])
+
+# other
+alpha = 0.05
+
+# tests
+t = (m1 - m0)/sqrt((var1/N1 + var0/N0))
+p_value = 2*(1-pnorm(abs(t)))
+dy = qnorm(1-alpha/2)*sqrt((var1/N1 + var0/N0))
+
+```
+
+$H_0: \mu_1 - \mu_0 = 0$  
+$H_1: \mu_1 - \mu_0 \neq 0$
+
+Mean difference = `r round(m1 - m0, 3)`  
+95% Confidence interval of `r sprintf("(%s, %s)", round(m1 - m0 - dy, 3), round(m1 - m0 + dy, 3))`    
+P value = `r round(p_value, 4)`
+
+
+**Problem 1.b**  
+Our analysis in part (a) indicates that our findings are statistically significant at the 0.05 level, and we can reject our null hypothesis. If our assumption that the observations are independent and identically distributed holds, then our findings imply that when Trump tweets about CNN and fake news, interest in the google search "Is CNN fake news" increases.
+
+\pagebreak
+
+**Problem 1.c**
+```{r problem 1.c}
+cov_d_i = cov(df$fake.D, df$interest)
+var_d = var(df$fake.D)
+```
+
+$\frac{Cov(X, Y)}{Var(X)} =$ `r round(cov_d_i/var_d, 3)`
+
+This is the same value calculated as the mean difference in problem 1.a, which implies that
+<center> $\frac{Cov(X, Y)}{Var(X)} = E[I|D = 1] - E[I|D = 0]$ </center>
+
+
+**Problem 1.d**  
+*Set up*  
+$E[D] = P(D=1) = 1 - P(D=0)$  
+$E[YD] = P(D=1) E[Y | D = 1]$  
+$E[Y] = P(D=1)E[Y|D=1] + P(D=0)E[Y|D=0]$  
+$Var(D) = E[D^2] - E[D]^2 = P(D=1)(1-P(D=1))$  
+$Cov(Y, D) = E[YD] - E[Y]E[D]$  
+
+*Proof*  
+
+$\frac{Cov(X, Y)}{Var(X)} = \frac{E[YD] - E[Y]E[D]}{P(D=1)(1-P(D=1))} = \frac{P(D=1) E[Y | D = 1] - P(D=1)[P(D=1)E[Y|D=1] + P(D=0)E[Y|D=0]]}{P(D=1)(1-P(D=1))}$  
+
+$= \frac{(1 - P(D=1))E[Y|D=1] + (1-P(D=1))E[Y|D=0]]}{1-P(D=1)}$  
+
+$=E[Y|D = 1] - E[Y|D = 0]$
+
+
+**Problem 1.e**  
+In this problem, we do not believe that the difference in means is indicative of a causal relationship between Trump tweeting about fake news and Google trends searches for CNN fake news. The variable we believe is most likely to confound our analysis is articles CNN writes about Trump. When CNN writes an article about Trump, we expect that this would likely lead to both an increase in the likelihood that Trump tweets about fake news and an increase in the interest in the google search "Is CNN fake news?" (particularly among Trump supporters). We think it is the criticism from CNN itself which leads to the increase in Google searches as well as eliciting a tweet from Trump which counters CNN's criticism with claims of fake news.
+
+
+**Problem 1.f**   
+```{r problem 1.f.setup, include = FALSE}
+library(sandwich)
+library(lmtest)
+```
+
+```{r problem 1.f}
+fit =lm(interest~fake.D, data=df)
+coeftest(fit,vcovHC(fit, type="HC"))
+coeftest(fit, vcov=vcovHAC(fit, type="HAC"))
+```
+
+In the second case, we attempt to correct for autocorrelation (to ensure that the samples are independently and identically distributed when the standard errors in the samples are different). We see that the standard error on the intercept decreased from 0.72558 to 0.69261, and the standard error on fake.D increased from 4.38257 to 4.40261. Our standard error doesn't change very much for our coefficient, indicating that autocorrelation in the initial regresssion was not high.
+
+## Problem 2
+```{r problem 2 setup, include = FALSE}
+dat <- twt[,-1]
+dat <- dat[,-2]
+dat <- dat[,-3]
+```
+
+**Problem 2.a**  
+Same as before, the estimand is $E[I|D = 1] - E[I|D = 0]$ which we are using because of our assumption that treatment is independent of potential outcomes. Thus, $E[I|D=d] = E[I(d)|D=d] = E[I(d)]$ so $E[I|D = 1] - E[I|D = 0] = E[I(1)-I(0)]$, the average treatment effect.
+
+Our estimator is the sample differene in means. By WLLN, $\lim_{n\to\infty} \bar{I}_N = E[I]$ so the mean difference should estimate the ATE.
+
+We expect that Trump does not use the same number of caps in his night tweets as compared to his day tweets. This may be due to the fact that night tweets are not reviewed by his staff (could be fewer or more caps depending).
+
+```{r problem 2.a}
+# mean difference
+m0 = mean(dat$cap[dat$night==0])
+m1 = mean(dat$cap[dat$night==1])
+
+# variance
+var0 = var(dat$cap[dat$night==0])
+var1 = var(dat$cap[dat$night==1])
+
+# sample size
+N0 = length(dat$cap[dat$night==0])
+N1 = length(dat$cap[dat$night==1])
+
+# other
+alpha = 0.05
+
+# tests
+t = (m1 - m0)/sqrt((var1/N1 + var0/N0))
+p_value = 2*(1-pnorm(abs(t)))
+dy = qnorm(1-alpha/2)*sqrt((var1/N1 + var0/N0))
+
+```
+
+$H_0: \mu_1 - \mu_0 = 0$  
+$H_1: \mu_1 - \mu_0 \neq 0$
+
+Mean difference = `r round(m1 - m0, 3)`   
+95% Confidence interval of `r sprintf("(%s, %s)", round(m1 - m0 - dy, 3), round(m1 - m0 + dy, 3))`   
+P value = `r round(p_value, 4)`
+
+
+**Problem 2.b**  
+Our analysis in part (a) indicates that our findings are not statistically significant at even the $\alpha = 0.1$ level, and we can not reject our null hypothesis.
+
+
+**Problem 2.c**  
+```{r problem 2.c}
+cov_d_i = cov(dat$cap, dat$night)
+var_d = var(dat$night)
+```
+
+$\frac{Cov(X, Y)}{Var(X)} =$ `r round(cov_d_i/var_d, 3)`.
+
+This is the same value calculated as the mean difference in problem 2.a, which still implies that
+<center> $\frac{Cov(X, Y)}{Var(X)} = E[I|D = 1] - E[I|D = 0]$ </center>
+
+
+**Problem 2.e**  
+We do not expect this difference to indicate a causal relationship. Though it seems Trump's night tweets contain more capitalized words, the difference is only marginal. If it had been statistically significant, our may still not indicate a causal relationship (i.e. due to staff reviewing day tweets, the topic of the tweet, etc.) 
