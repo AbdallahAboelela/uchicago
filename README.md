@@ -1,1 +1,1 @@
-Random code snippets that needed to be shared
+Code from classes taken at UChicago
